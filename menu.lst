@@ -1,9 +1,0 @@
-#splashimage /boot/grub/mars.xpm.gz
-
-title notOS-1 /boot/notos1.bin
-root (hd0,1)
-kernel /boot/notos1.bin
-
-title Boot FAT32
-root (hd0,0)
-chainloader +1
