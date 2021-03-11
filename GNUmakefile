@@ -7,8 +7,8 @@ help :
 	@echo "  make clean            Clean built files."
 	@echo "  make clean-all        Clean intermediate files and built files."
 	@echo "  make dist-clean       Clean downloaded files, and all artifacts above."
-	@echo "  make run              Start the emulator (TODO)"
-	@echo "  make test             Run the test suite"
+	@echo "  make run              Start the emulator"
+	@echo "  make test             Run the test suite (TODO)"
 
 all :: install.iso
 
