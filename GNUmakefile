@@ -17,6 +17,9 @@ all :: install.iso
 install.iso :
 	scripts/build-image-iso.sh
 
+run : install.iso
+	scripts/run-qemu.sh
+
 clean ::
 	$(RM) install.iso
 

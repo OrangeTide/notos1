@@ -35,6 +35,9 @@ ISOLINUX_BOOT_DIR="boot/isolinux"
 # path to the configuration for ISOLINUX
 ISOLINUX_CFG_ORIG="config/isolinux.cfg"
 
+# path to a splash.png file for ISOLINUX
+ISOLINUX_BOOT_SPLASH="assets/mars.png"
+
 ########################################################################
 
 get_syslinux()
@@ -62,14 +65,23 @@ get_syslinux()
 
 	log "Decompressing SYSLINUX ..."
 	tar zxf "${SYSLINUX_TAR_GZ}" || die "could not decompress SYSLINUX"
+}
 
-	ISOLINUX_BIN_ORIG="$(find "syslinux-${SYSLINUX_VERSION}" -name 'isolinux.bin' || die "could not find isolinux.bin")"
-	log "using ISOLINUX: ${ISOLINUX_BIN_ORIG}"
+install_isolinux()
+{
+	log "using ISOLINUX ${SYSLINUX_VERSION}"
 
-	log "Copying to ${CD_ROOT}/${ISOLINUX_BOOT_DIR}/isolinux.bin ..."
+	SYSLINUX_DIR="syslinux-${SYSLINUX_VERSION}"
+
+	[ -d "${SYSLINUX_DIR}" ] || die "SYSLINUX not found"
+
 	mkdir -p "${CD_ROOT}/${ISOLINUX_BOOT_DIR}"
 
-	install -m 755 "${ISOLINUX_BIN_ORIG}" "${CD_ROOT}/${ISOLINUX_BOOT_DIR}/isolinux.bin" || die "Could not copy isolinux.bin"
+	for f in "bios/core/isolinux.bin" "bios/com32/elflink/ldlinux/ldlinux.c32" "bios/com32/libutil/libutil.c32" "bios/com32/menu/menu.c32" "bios/com32/lib/libcom32.c32" "bios/com32/menu/vesamenu.c32" ; do
+		b="$(basename "${f}")"
+		log "Copying to ${CD_ROOT}/${ISOLINUX_BOOT_DIR}/${b} ..."
+		install -m 644 "${SYSLINUX_DIR}/${f}" "${CD_ROOT}/${ISOLINUX_BOOT_DIR}/${b}" || die "Could not copy ${b}"
+	done
 }
 
 verify_prereq()
@@ -78,14 +90,25 @@ verify_prereq()
 	[ -d "${CD_ROOT}/${ISOLINUX_BOOT_DIR}" ] || die "Missing ISOLINUX boot directory"
 	[ -e "${CD_ROOT}/${ISOLINUX_BOOT_DIR}/isolinux.bin" ] || die "Missing isolinux.bin"
 	[ -e "${ISOLINUX_CFG_ORIG}" ] || die "Missing isolinux.cfg"
+	if [ -n "${ISOLINUX_BOOT_SPLASH}" ]; then
+		[ -e "${ISOLINUX_BOOT_SPLASH}" ] || die "Missing splash.png"
+	fi
+}
+
+copy_isolinux_config()
+{
+	log "Copying ISOLINUX config to ${CD_ROOT}/${ISOLINUX_BOOT_DIR}/isolinux.cfg ..."
+	install -m 644 "${ISOLINUX_CFG_ORIG}" "${CD_ROOT}/${ISOLINUX_BOOT_DIR}/isolinux.cfg" || die "Could not copy isolinux.cfg"
+
+	if [ -e "${ISOLINUX_BOOT_SPLASH}" ]; then
+		log "Copying ISOLINUX boot splash graphic ..."
+		install -m 644 "${ISOLINUX_BOOT_SPLASH}" "${CD_ROOT}/${ISOLINUX_BOOT_DIR}/splash.png" || die "Could not copy splash.png"
+	fi
 }
 
 make_isofs()
 {
 	ISOLINUX_BIN="${ISOLINUX_BOOT_DIR}/isolinux.bin"
-
-	log "Copying ISOLINUX config ..."
-	install -m 644 "${ISOLINUX_CFG_ORIG}" "${CD_ROOT}/${ISOLINUX_BOOT_DIR}/isolinux.cfg" || die "Could not copy isolinux.cfg"
 
 	case "$(uname -s)" in
 		"Darwin")
@@ -118,12 +141,14 @@ log "TODO: copy operating system files to ${CD_ROOT}"
 
 get_syslinux
 
+install_isolinux
+
 verify_prereq
+
+copy_isolinux_config
 
 make_isofs
 
 make_isofs_hybrid
-
-die "TODO: copy config file for ISOLINUX ... "
 
 log "${OUTPUT_ISO}: done!"
