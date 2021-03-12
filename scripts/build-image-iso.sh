@@ -38,6 +38,9 @@ ISOLINUX_CFG_ORIG="config/isolinux.cfg"
 # path to a splash.png file for ISOLINUX
 ISOLINUX_BOOT_SPLASH="assets/mars.png"
 
+KERNEL_BIN="boot/isolinux/kernel.img"
+KERNEL_BIN_ORIG="kernel/kernel.img"
+
 ########################################################################
 
 get_syslinux()
@@ -77,15 +80,23 @@ install_isolinux()
 
 	mkdir -p "${CD_ROOT}/${ISOLINUX_BOOT_DIR}"
 
-	for f in "bios/core/isolinux.bin" "bios/com32/elflink/ldlinux/ldlinux.c32" "bios/com32/libutil/libutil.c32" "bios/com32/menu/menu.c32" "bios/com32/lib/libcom32.c32" "bios/com32/menu/vesamenu.c32" ; do
+	for f in "bios/core/isolinux.bin" "bios/com32/elflink/ldlinux/ldlinux.c32" "bios/com32/libutil/libutil.c32" "bios/com32/menu/menu.c32" "bios/com32/lib/libcom32.c32" "bios/com32/mboot/mboot.c32" "bios/com32/menu/vesamenu.c32" ; do
 		b="$(basename "${f}")"
 		log "Copying to ${CD_ROOT}/${ISOLINUX_BOOT_DIR}/${b} ..."
 		install -m 644 "${SYSLINUX_DIR}/${f}" "${CD_ROOT}/${ISOLINUX_BOOT_DIR}/${b}" || die "Could not copy ${b}"
 	done
 }
 
+copy_system_files()
+{
+	log "Copy operating system files to ${CD_ROOT}"
+	mkdir -p "$(dirname "${CD_ROOT}/${KERNEL_BIN}")"
+	install -m 644 "${KERNEL_BIN_ORIG}" "${CD_ROOT}/${KERNEL_BIN}" || die "Could not copy kernel.img"
+}
+
 verify_prereq()
 {
+	[ -n "${VERSION}" ] || log "Warning: VERSION is unset"
 	[ -d "${CD_ROOT}" ] || die "Missing CD_ROOT"
 	[ -d "${CD_ROOT}/${ISOLINUX_BOOT_DIR}" ] || die "Missing ISOLINUX boot directory"
 	[ -e "${CD_ROOT}/${ISOLINUX_BOOT_DIR}/isolinux.bin" ] || die "Missing isolinux.bin"
@@ -93,6 +104,7 @@ verify_prereq()
 	if [ -n "${ISOLINUX_BOOT_SPLASH}" ]; then
 		[ -e "${ISOLINUX_BOOT_SPLASH}" ] || die "Missing splash.png"
 	fi
+	[ -e "${CD_ROOT}/${KERNEL_BIN}" ] || die "Missing kernel.img"
 }
 
 copy_isolinux_config()
@@ -119,7 +131,7 @@ make_isofs()
 			;;
 		"Linux"|"FreeBSD"|"OpenBSD")
 			log "Creating CD/DVD bootable ISO image with ISOLINUX ..."
-			mkisofs -o "${OUTPUT_ISO}" -eltorito-boot "${ISOLINUX_BIN}" -c "boot/boot.cat" -no-emul-boot -boot-load-size 4 -boot-info-table -input-charset iso8859-1 -iso-level 1 "${CD_ROOT}" || die "could not create ISO disk image"
+			mkisofs -o "${OUTPUT_ISO}" -eltorito-boot "${ISOLINUX_BIN}" -c "boot/boot.cat" -no-emul-boot -boot-load-size 4 -boot-info-table -input-charset iso8859-1 -iso-level 1 -sysid "NOTOS/1" -V "NotOS1_INSTALL" -appid "NotOS/1 ${VERSION} Installation Media" "${CD_ROOT}" || die "could not create ISO disk image"
 			;;
 		*)
 			die "Unsupported operating system"
@@ -137,11 +149,11 @@ make_isofs_hybrid()
 
 mkdir -p "${CD_ROOT}"
 
-log "TODO: copy operating system files to ${CD_ROOT}"
-
 get_syslinux
 
 install_isolinux
+
+copy_system_files
 
 verify_prereq
 

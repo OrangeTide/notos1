@@ -1,4 +1,16 @@
+; temporary files
 .*.swp
+
+; intermediate files
+*.o
+*.a
+*.bin
+*.elf
+
+; build artifacts
+*.img
 *.iso
-CD_root
+CD_root/
+
+; directories and downloads
 syslinux-*

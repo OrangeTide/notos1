@@ -1,0 +1,21 @@
+os: linux
+dist: focal
+language: c
+
+jobs:
+  include:
+    - language: shell
+      before_install:
+        - sudo apt-get -qq update
+        - sudo apt-get install shellcheck
+      script:
+        - shellcheck scripts/build-image-iso.sh
+        - shellcheck scripts/run-qemu.sh
+    - language: c
+      before_install:
+        - sudo apt-get -qq update
+        - sudo apt-get install git make curl
+      script:
+        - make all
+        - make test
+        - make dist-clean

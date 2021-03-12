@@ -1,6 +1,11 @@
 ## Makefile for NOTOS/1
 # NOTE: sorry, you will need to use GNU make.
 
+VERSION := $(shell cat VERSION)
+export VERSION
+
+SUBDIRS := kernel
+
 help :
 	@echo "Usage:"
 	@echo "  make all              Build everything."
@@ -14,19 +19,30 @@ all :: install.iso
 
 .PHONY : all clean clean-all dist-clean test run help
 
-install.iso :
+install.iso : $(SUBDIRS:%=build-%)
 	scripts/build-image-iso.sh
 
 run : install.iso
 	scripts/run-qemu.sh
 
-clean ::
+clean :: $(SUBDIRS:%=clean-%)
 	$(RM) install.iso
 
 # TODO: share these version numbers between the makefile and script
-clean-all :: clean
+clean-all :: clean $(SUBDIRS:%=cleanall-%)
 	$(RM) -r CD_root
 	$(RM) -r syslinux-6.03
 
 dist-clean :: clean-all
 	$(RM) syslinux-6.03.tar.gz  syslinux-6.03.tar.sign
+
+# Recursive Make hacks
+
+build-% :
+	make -C $* all
+
+clean-% :
+	make -C $* clean
+
+cleanall-% :
+	make -C $* clean-all
